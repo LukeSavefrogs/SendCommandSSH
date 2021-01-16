@@ -33,19 +33,19 @@ Once a connection is estabilished, the commands are sent and all of its output i
 
 Initially the `decodeRemoteScreen` function was written in Bash, but i rewrote it in Perl because when saving a long output to a file it too much time. This seems to be a problem of Bash' read function which is [known to be very slow in loops](https://stackoverflow.com/a/13764233/8965861). After some research i found Perl was way faster. Well, that proved to be sooo true :). This is a test using another script of mine doing same operations with lots of output and `--output` set (so every line shown on the remote terminal will be saved on disk):
 - **Bash**:
-```
-real    1m2,453s
-user    0m13,274s
-sys     0m39,534s
-```
+  ```
+  real    1m2,453s
+  user    0m13,274s
+  sys     0m39,534s
+  ```
 - **Perl**:
-```
-real    0m11,288s
-user    0m1,471s
-sys     0m3,797s
-```
+  ```
+  real    0m11,288s
+  user    0m1,471s
+  sys     0m3,797s
+  ```
 
-In this test Perl ended up being 6x times faster!
+In this test Perl ended up being **6x times faster**!
 
 ## Usage
 
