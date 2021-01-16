@@ -8,8 +8,8 @@ SendCommand.UNIX [-r] [-d] [-o] -u USERNAME -p PASSWORD COMMANDS
 
 ## Features
 - **Passwordless** login (thanks to `sshpass`);
-- Execute commands as **normal user** or **super user**;
-- **Log to file** all the terminal output (while still receiving filtered output);
+- Execute commands as **normal user** or **super user** (`-r` or `--asRoot`);
+- **Log to file** all the terminal output while still receiving filtered output (`-o` or `--output`);
 - Works on both **Linux and AIX**.
 
 ## Why? 
