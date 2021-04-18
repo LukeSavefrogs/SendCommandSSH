@@ -5,7 +5,7 @@ Utility to send command through SSH and receive output.
 ```Bash
 SendCommand.UNIX [-r] [-d] [-o] -u USERNAME -p PASSWORD TARGET_HOST COMMANDS
 ```
-#### Example
+#### Examples
 - Send `chage -l` command as `$MY_USERNAME`:
   ```bash
   SendCommand.UNIX -u $MY_USERNAME -p $MY_PASSWORD $MY_TARGET_HOST "chage -l $MY_USERNAME"
