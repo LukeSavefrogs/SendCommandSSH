@@ -3,8 +3,34 @@ Utility to send command through SSH and receive output.
 
 #### Syntax
 ```Bash
-SendCommand.UNIX [-r] [-d] [-o] -u USERNAME -p PASSWORD COMMANDS
+SendCommand.UNIX [-r] [-d] [-o] -u USERNAME -p PASSWORD TARGET_HOST COMMANDS
 ```
+#### Example
+- Send `chage -l` command as `$MY_USERNAME`:
+  ```bash
+  SendCommand.UNIX -u $MY_USERNAME -p $MY_PASSWORD $MY_TARGET_HOST "chage -l $MY_USERNAME"
+  ```
+
+- Send `chage -l` command as `root`:
+  ```bash
+  SendCommand.UNIX -u $MY_USERNAME -p $MY_PASSWORD --asRoot $MY_TARGET_HOST "chage -l $MY_USERNAME"
+  ```
+
+- Send `chage -l` command as `root` and save the terminal output to log called `my_terminal.log`:
+  ```bash
+  SendCommand.UNIX -u $MY_USERNAME -p $MY_PASSWORD --asRoot -o my_terminal.log $MY_TARGET_HOST "chage -l $MY_USERNAME"
+  ```
+  
+- Send a **long list** of commands as `root`:
+  ```bash
+  SendCommand.UNIX -u $MY_USERNAME -p $MY_PASSWORD --asRoot -o my_terminal.log $MY_TARGET_HOST <<-END_OF_SESSION
+    echo "I am inside \$(hostname)";
+    echo "My name is root";
+    
+    # This is a very useful comment
+    chage -l $MY_USERNAME
+  END_OF_SESSION
+  ```
 
 ## Features
 - **Passwordless** login (thanks to `sshpass`);
