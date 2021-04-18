@@ -13,7 +13,11 @@ SendCommand.UNIX [-r] [-d] [-o] -u USERNAME -p PASSWORD TARGET_HOST COMMANDS
 
 - Send `chage -l` command as `root`:
   ```bash
-  SendCommand.UNIX -u $MY_USERNAME -p $MY_PASSWORD --asRoot $MY_TARGET_HOST "chage -l $MY_USERNAME"
+  # Short Option syntax
+  SendCommand.UNIX -u $MY_USERNAME -p $MY_PASSWORD -r $MY_TARGET_HOST "chage -l $MY_USERNAME"
+  
+  # Full Option syntax
+  SendCommand.UNIX --username $MY_USERNAME --password $MY_PASSWORD --asRoot $MY_TARGET_HOST "chage -l $MY_USERNAME"
   ```
 
 - Send `chage -l` command as `root` and save the terminal output to log called `my_terminal.log`:
