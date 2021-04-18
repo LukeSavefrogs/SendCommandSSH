@@ -27,10 +27,22 @@ SendCommand.UNIX [-r] [-d] [-o] -u USERNAME -p PASSWORD TARGET_HOST COMMANDS
     echo "I am inside \$(hostname)";
     echo "My name is root";
     
+    printf "\n";
+	
+    su - $OTHER_USER <<END_OF_SU
+      printf "My name now is: "; whoami;
+
+      echo "Timestamp is: \\\$(date +%s)";
+    END_OF_SU
+	
+    printf "\n";
+	
+    printf "My name is still: "; whoami;
     # This is a very useful comment
     chage -l $MY_USERNAME
   END_OF_SESSION
   ```
+  **NOTE**: you MUST use <kbd>TAB</kbd>s inside _here-document_ to make it work indented like this, not <kbd>SPACE</kbd>s. See [this question](https://unix.stackexchange.com/a/353689/348102) or [this article](https://linuxize.com/post/bash-heredoc/) for more info...
 
 ## Features
 - **Passwordless** login (thanks to `sshpass`);
