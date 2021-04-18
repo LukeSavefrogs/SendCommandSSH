@@ -36,7 +36,7 @@ SendCommand.UNIX [-r] [-d] [-o] -u USERNAME -p PASSWORD TARGET_HOST COMMANDS
     su - $OTHER_USER <<END_OF_SU
       printf "My name now is: "; whoami;
 
-      echo "Timestamp is: \\\$(date +%s)";
+      printf "Timestamp is: "; date +%s:
     END_OF_SU
 	
     printf "\n";
