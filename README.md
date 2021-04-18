@@ -42,6 +42,7 @@ SendCommand.UNIX [-r] [-d] [-o] -u USERNAME -p PASSWORD TARGET_HOST COMMANDS
     printf "\n";
 	
     printf "My name is still: "; whoami;
+    
     # This is a very useful comment
     chage -l $MY_USERNAME
   END_OF_SESSION
