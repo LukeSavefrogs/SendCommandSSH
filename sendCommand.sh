@@ -6,9 +6,10 @@
 #		whoami
 # 	EOF
 function SendCommand.UNIX () {
-	local -r UNIQUE_SESSION_ID="$(echo $RANDOM | md5sum | awk '// { print $1 }')";
-	local -r VERSION="2.1.0";
+	local -r VERSION="2.2.0";
 	local -r SCRIPT_NAME="${FUNCNAME[0]}";
+
+	local -r UNIQUE_SESSION_ID="$(echo $RANDOM | md5sum | awk '// { print $1 }')";
 
 	# Styling
 	local red='\033[0;31m';
@@ -31,7 +32,7 @@ function SendCommand.UNIX () {
 
 	# Check for needed programs to be present on the system.
 	local dependencies=(sshpass perl printf);
-	for p in ${dependencies[@]}; do
+	for p in "${dependencies[@]}"; do
 		command -v "$p" >/dev/null 2>&1 || {
 			printf "${yellow}WARNING${default} - Required program is not installed: '%s'. Install it then retry..\n" "$p";
 		
@@ -143,12 +144,10 @@ function SendCommand.UNIX () {
 			use strict; use warnings;
 			use Fcntl;
 			
-
 			# Get environment variables from the shell
 			my $UNIQUE_SESSION_ID   = $ENV{"PSHARED_UNIQUE_SESSION_ID"};
 			my $OUTPUT_TO_FILE      = $ENV{"PSHARED_OUTPUT_FILE"};
 			my $DEBUG_MODE          = $ENV{"PSHARED_DEBUG_MODE"};
-
 
 			# Open the file handler if the logging is enabled
 			if (not $OUTPUT_TO_FILE eq "") {
@@ -156,13 +155,14 @@ function SendCommand.UNIX () {
 					or die "Cant open File: $!\n";
 			}
 
-
 			# Loop through the STDIN
 			while (my $line = <>) {
+				my $is_stderr = $line =~ m/^STDERR:$UNIQUE_SESSION_ID/;
+				my $is_stdout = $line =~ m/^STDOUT:$UNIQUE_SESSION_ID/;
 				
 				# Send to file a sanitized version of the line
 				if (not $OUTPUT_TO_FILE eq "") {
-
+	
 					# Assign to temporary variable so that actual line content is not changed
 					my $sanitized_line = $line;
 
@@ -181,14 +181,21 @@ function SendCommand.UNIX () {
 				
 
 				if ($DEBUG_MODE) {
-					print("$line");
-				} else {
-					# Print only matching lines and strip out the Unique identifier
-					if ($line =~ m/^$UNIQUE_SESSION_ID/) {
-						my $out_line = $line;
-						$out_line =~ s/^$UNIQUE_SESSION_ID//;
-						
-						print ("$out_line");
+					print("Remote: $line");
+				}
+
+				# Print only matching lines and strip out the Unique identifier
+				if ($line =~ m/^(STD(OUT|ERR):)?$UNIQUE_SESSION_ID/) {
+					my $out_line = $line;
+					$out_line =~ s/^(STD(OUT|ERR):)?$UNIQUE_SESSION_ID//;
+					$out_line =~ s/\r+//g;
+					
+					# Correctly redirect both STDERR and STDOUT [2021/05/13]
+					if ($is_stderr) {
+						printf STDERR $out_line;
+					}
+					else {
+						printf STDOUT $out_line;
 					}
 				}
 			}
@@ -205,36 +212,21 @@ function SendCommand.UNIX () {
 		unset PSHARED_UNIQUE_SESSION_ID;
 		unset PSHARED_OUTPUT_FILE;
 		unset PSHARED_DEBUG_MODE;
-
-		# FIX 14.01.2021 - OLD CODE - Translated into Perl to gain a LOT of speed against bash's `read` calls
-		# while read line; do
-		# 	[[ -n "$OUTPUT_FILE" ]] && {
-		# 		# printf "INFO - Invio al file '%s'\n" "$OUTPUT_FILE" >&2;
-		# 		echo "$line" | sed -r 's/\x1B\]0;.*?\x07//g; s/\x1B\[\?1034h//g; s/|\x08|\x0D|\x0C//g; s/\x1B\[([0-9]{1,3}(;[0-9]{1,2})?)?[mGK]//g; s/ \r//g; s/\r//g' >> "$OUTPUT_FILE";
-		# 	}
-
-		# 	$DEBUG && {
-		# 		echo "$line";
-		# 	} || {
-		# 		echo "$line" | awk -v regex="^${UNIQUE_SESSION_ID}" '{ if ($0 ~ regex) { gsub(regex, ""); print } }' 
-		# 	}
-		# done
 	}
 
-	# We need `stty -onlcr` to disable the default behaviour of `ssh -tt` which is transform each LF to CRLF (also `stty -onlcr -opost`)
-	# 	Source: https://unix.stackexchange.com/a/151963/348102
-	sshpass -p $password ssh -tt $server -l $username -o LogLevel=QUIET -o StrictHostKeyChecking=No <<-EOF | decodeRemoteScreen
-		stty -opost; 
-
+	sshpass -p "$password" ssh -tt "$server" -l "$username" -o LogLevel=QUIET -o StrictHostKeyChecking=No <<-EOF | decodeRemoteScreen
 		$($NEEDS_ROOT && {
 			printf "%s\n" "printf '$password\n' | sudo -S su -; sudo su -;"; 
 		})
-		
-		printf "\n"; (
-			$commands
-		) | sed 's/^/${UNIQUE_SESSION_ID}/'; printf "\n";
+
+		{
+			printf "\n"; (
+				$commands
+			) | sed 's/^/STDOUT:${UNIQUE_SESSION_ID}/'; printf "\n";
+		} 2> >(sed 's/^/STDERR:${UNIQUE_SESSION_ID}/') 
+
+		$($NEEDS_ROOT && printf "exit\n")
 
 		exit;
-		$($NEEDS_ROOT && printf "exit\n")
 	EOF
 }
