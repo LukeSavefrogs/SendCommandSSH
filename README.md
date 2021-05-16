@@ -54,6 +54,7 @@ SendCommand.UNIX [-r] [-d] [-o] -u USERNAME -p PASSWORD TARGET_HOST COMMANDS
 - Execute commands as **normal user** or **super user** (with `-r` or `--asRoot`);
 - **Log to file** all the terminal output while still receiving filtered output (`-o` or `--output`);
 - Works on both **Linux and AIX**.
+- If `Bash` is available on the remote system, `stdout` and `stderr` routing is performed so that remote `stderr` is bound to the local `stderr`
 
 ## Why? 
 I created this function because i needed to execute long sets of commands on remote shells and retrieve the result on different OS:
