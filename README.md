@@ -49,6 +49,11 @@ SendCommand.UNIX [-r] [-d] [-o] -u USERNAME -p PASSWORD TARGET_HOST COMMANDS
   ```
   **NOTE**: you MUST use <kbd>TAB</kbd>s inside _here-document_ to make it work indented like this, not <kbd>SPACE</kbd>s. See [this question](https://unix.stackexchange.com/a/353689/348102) or [this article](https://linuxize.com/post/bash-heredoc/) for more info...
 
+- Redirect remote stdout/stderr to distinct files:
+  ```bash
+  SendCommand.UNIX --username $MY_USERNAME --password $MY_PASSWORD --asRoot "$MY_TARGET_HOST" "echo OK; echo NOT OK >&2" > stdout.log 2> stderr.log
+  ```
+  
 ## Features
 - **Passwordless** login (thanks to `sshpass`);
 - Execute commands as **normal user** or **super user** (with `-r` or `--asRoot`);
