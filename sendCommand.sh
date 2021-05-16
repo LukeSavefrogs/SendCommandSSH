@@ -6,7 +6,7 @@
 #		whoami
 # 	EOF
 function SendCommand.UNIX () {
-	local -r VERSION="2.2.0";
+	local -r VERSION="2.3.0";
 	local -r SCRIPT_NAME="${FUNCNAME[0]}";
 
 	local -r UNIQUE_SESSION_ID="$(echo $RANDOM | md5sum | awk '// { print $1 }')";
@@ -65,6 +65,36 @@ function SendCommand.UNIX () {
 		printf "License: GNU GPL v3.0\n\n";
 		printf "Written by Luca Salvarani - https://github.com/LukeSavefrogs\n\n";
 	}
+
+	# Usage: 
+	#	check_reachable "120.0.0.1"
+	function check_reachable {
+		local hostname_or_ip=$1;
+
+		ssh -o PubkeyAuthentication=no -o PasswordAuthentication=no -o KbdInteractiveAuthentication=no -o ChallengeResponseAuthentication=no -o ConnectTimeout=5 $hostname_or_ip 2>&1 | grep -q "Permission denied";
+
+		ssh_return_value=$?;
+
+		[[ $ssh_return_value == 0 ]] ||
+			printf "${red}ERROR${default} - Host '%s' unreachable on port 22\n" "$hostname_or_ip";
+
+		return $ssh_return_value;
+	}
+
+	check_credentials () {
+		system_os=$(timeout 10 sshpass -p "$3" ssh -tt -o LogLevel=QUIET -o StrictHostKeyChecking=No -o ConnectTimeout=5 -l "$2" "$1" "uname" 2>/dev/null);
+		ssh_return_value=$?;
+
+		if [[ $ssh_return_value == 5 ]]; then
+			printf "${red}ERROR${default} - Credentials not valid\n" >&2;
+		elif [[ $ssh_return_value == 124 ]]; then
+			printf "${yellow}WARNING${default} - Credentials expired (server asking to change them during login)\n" >&2;
+		fi
+
+		printf "%s\n" "$system_os" | tr -d '\r';
+		return $ssh_return_value;
+	}
+
 
 	OPTIND=1;
 	POSITIONAL=();
@@ -133,6 +163,27 @@ function SendCommand.UNIX () {
 	commands="$2"; if [[ -z "$commands" || "$commands" == "-" ]]; then commands=$(cat); fi
 
 
+	$DEBUG && printf "> [-] Checking connection to '%s'... \t" "$server";
+	if ! check_reachable "$server"; then 
+	$DEBUG && printf "\r> [${red}X${default}] Checking connection to '%s'... \n" "$server";
+		return 1;
+	fi;
+	$DEBUG && printf "\r> [${green}V${default}] Checking connection to '%s'... \n" "$server";
+
+	$DEBUG && printf "> [-] Validating credentials... \t"
+	if ! remote_os=$(check_credentials "$server" "$username" "$password"); then
+		$DEBUG && printf "\r> [${red}X${default}] Validating credentials...\n"
+		return 1;
+	fi;
+	$DEBUG && printf "\r> [${green}V${default}] Validating credentials...\n"
+
+	$DEBUG && printf "> [-] Validating Operative System... \t"
+	if ! [[ ${remote_os^^} =~ (^LINUX$|^AIX$|DARWIN|^CYGWIN) ]]; then
+		$DEBUG && printf "\r> [${red}X${default}] Validating Operative System (OS not valid: '%s')...\n" "${remote_os}"
+		return 1;
+	fi;
+	$DEBUG && printf "\r> [${green}V${default}] Validating Operative System...\n"
+
 	# Function used to decode data passed through the SSH connection
 	decodeRemoteScreen () {
 		# Export variables to exchange data between Bash and Perl
@@ -141,7 +192,8 @@ function SendCommand.UNIX () {
 		export PSHARED_DEBUG_MODE="$($DEBUG && echo 1 || echo 0)";
 
 		perl -e '
-			use strict; use warnings;
+			use strict;
+			use warnings;
 			use Fcntl;
 			
 			# Get environment variables from the shell
@@ -214,19 +266,32 @@ function SendCommand.UNIX () {
 		unset PSHARED_DEBUG_MODE;
 	}
 
+	$DEBUG && printf "> [-] Sending commands to remote host...\n"
+
+	# If Bash is available, use it to provide separation between STDERR and STDOUT through Command Substitution
+	# Otherwise fallback to only stdout and print stderr as stdout
+	# TODO: Come up with a better fallback for systems with no bash
 	sshpass -p "$password" ssh -tt "$server" -l "$username" -o LogLevel=QUIET -o StrictHostKeyChecking=No <<-EOF | decodeRemoteScreen
 		$($NEEDS_ROOT && {
 			printf "%s\n" "printf '$password\n' | sudo -S su -; sudo su -;"; 
 		})
 
-		{
+		if command -v bash > /dev/null 2>&1; then
+			bash <<END_OF_SESSION
+				printf "\n"; (
+					$commands
+				) 2> >(sed 's/^/STDERR:${UNIQUE_SESSION_ID}/') > >(sed 's/^/STDOUT:${UNIQUE_SESSION_ID}/'); printf "\n";
+			END_OF_SESSION
+		else
 			printf "\n"; (
 				$commands
-			) | sed 's/^/STDOUT:${UNIQUE_SESSION_ID}/'; printf "\n";
-		} 2> >(sed 's/^/STDERR:${UNIQUE_SESSION_ID}/') 
-
+			) 2>&1 | sed 's/^/STDOUT:${UNIQUE_SESSION_ID}/'; printf "\n";
+		fi;
+		
 		$($NEEDS_ROOT && printf "exit\n")
 
 		exit;
 	EOF
+
+	$DEBUG && printf "\n> [${green}V${default}] Connection closed...\n"
 }
