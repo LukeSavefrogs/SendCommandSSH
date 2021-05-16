@@ -6,7 +6,7 @@
 #		whoami
 # 	EOF
 function SendCommand.UNIX () {
-	local -r VERSION="2.3.0";
+	local -r VERSION="2.3.1";
 	local -r SCRIPT_NAME="${FUNCNAME[0]}";
 
 	local -r UNIQUE_SESSION_ID="$(echo $RANDOM | md5sum | awk '// { print $1 }')";
@@ -42,7 +42,7 @@ function SendCommand.UNIX () {
 
 	usage () {
 		printf "USAGE\n" >&2;
-		printf "\t${yellow}%s${default} [-r] ${underlined}HOSTNAME_IP${default} ${underlined}COMMAND${default}\n\n" "$SCRIPT_NAME" >&2;
+		printf "\t${yellow}%s${default} [-r] -u ${underlined}USERNAME${default} -p ${underlined}PASSWORD${default} ${underlined}HOSTNAME_IP${default} ${underlined}COMMAND${default}\n\n" "$SCRIPT_NAME" >&2;
 		printf "OPTIONS\n" >&2;
 		printf "\t-u, --username ${underlined}USERNAME${default}\n" >&2;
 		printf "\t\tSpecify the username used to login into the remote host\n\n" >&2;
